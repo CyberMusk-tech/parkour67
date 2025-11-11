@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Parkour Game - Hardcore</title>
+<title>3D Parkour Game - Full Version</title>
 <style>
   body { margin:0; overflow:hidden; background:#1e1e1e; }
   canvas { display:block; }
@@ -33,69 +33,54 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/controls/PointerLockControls.js"></script>
 <script>
 let camera, scene, renderer, controls;
-let player, velocityY = 0;
-const gravity = -0.02;
-const platforms = [];
-const hazards = [];
+let player, velocityY=0;
+const gravity=-0.02;
+const platforms=[], hazards=[];
 let moveForward=false, moveBackward=false, moveLeft=false, moveRight=false;
 let canJump=false;
 let finished=false;
 
-// Initialize
-function init() {
+function init(){
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1e1e1e);
 
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-  camera.position.set(0,2,5);
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight,0.1,1000);
 
   renderer = new THREE.WebGLRenderer();
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // Light
   const light = new THREE.DirectionalLight(0xffffff,1);
   light.position.set(5,10,7);
   scene.add(light);
 
   // Player
-  const geometry = new THREE.BoxGeometry(1,1,1);
-  const material = new THREE.MeshStandardMaterial({color:0xff0000});
-  player = new THREE.Mesh(geometry,material);
-  player.position.y = 0.5;
+  player = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshStandardMaterial({color:0xff0000}));
+  player.position.set(0,0.5,0);
   scene.add(player);
 
-  // Platforms
+  // Create platform
   function createPlatform(x,y,z,w,d,moving=false,speed=0,vertical=false){
-    const plat = new THREE.Mesh(
-      new THREE.BoxGeometry(w,0.5,d),
-      new THREE.MeshStandardMaterial({color:moving?0xffaa00:0x00ff00})
-    );
+    const plat = new THREE.Mesh(new THREE.BoxGeometry(w,0.5,d), new THREE.MeshStandardMaterial({color:moving?0xffaa00:0x00ff00}));
     plat.position.set(x,y,z);
-    plat.userData.moving = moving;
-    plat.userData.speed = speed;
-    plat.userData.dir = 1;
-    plat.userData.vertical = vertical;
+    plat.userData={moving, speed, dir:1, vertical};
     scene.add(plat);
     platforms.push(plat);
   }
 
-  // Hazards (red spikes)
+  // Create hazard
   function createHazard(x,y,z,w,d){
-    const hazard = new THREE.Mesh(
-      new THREE.BoxGeometry(w,0.5,d),
-      new THREE.MeshStandardMaterial({color:0xff0000})
-    );
+    const hazard = new THREE.Mesh(new THREE.BoxGeometry(w,0.5,d), new THREE.MeshStandardMaterial({color:0xff0000}));
     hazard.position.set(x,y,z);
     scene.add(hazard);
     hazards.push(hazard);
   }
 
-  // Long course
+  // Platforms
   createPlatform(0,0,0,5,5);
-  createPlatform(5,0,-5,5,5,true,0.05);      // moving side-to-side
+  createPlatform(5,0,-5,5,5,true,0.05);
   createPlatform(10,1,-10,5,5);
-  createPlatform(15,2,-15,5,5,true,0.08,true); // moving vertical
+  createPlatform(15,2,-15,5,5,true,0.08,true);
   createPlatform(20,2,-20,5,5);
   createPlatform(25,1,-25,5,5,true,0.1);
   createPlatform(30,1,-30,5,5);
@@ -105,39 +90,32 @@ function init() {
   createHazard(12,1.25,-12,5,5);
   createHazard(28,1.25,-28,5,5);
 
-  // Finish line
-  const finish = new THREE.Mesh(
-    new THREE.BoxGeometry(3,0.5,3),
-    new THREE.MeshStandardMaterial({color:0x0000ff})
-  );
+  // Finish
+  const finish = new THREE.Mesh(new THREE.BoxGeometry(3,0.5,3), new THREE.MeshStandardMaterial({color:0x0000ff}));
   finish.position.set(38,0.5,-38);
-  finish.name = "finish";
+  finish.name="finish";
   scene.add(finish);
 
-  // PointerLockControls
-  controls = new THREE.PointerLockControls(camera,document.body);
+  // Controls
+  controls = new THREE.PointerLockControls(camera, document.body);
+  controls.getObject().position.set(player.position.x,player.position.y+1.5,player.position.z);
+
   document.getElementById('startButton').addEventListener('click',()=>{
     controls.lock();
     document.getElementById('startButton').style.display='none';
   });
 
-  controls.addEventListener('lock',()=>{
-    document.getElementById('instructions').style.display='block';
-  });
-
   // Keyboard
-  document.addEventListener('keydown', (e)=>{
+  document.addEventListener('keydown', e=>{
     switch(e.code){
       case 'KeyW': moveForward=true; break;
       case 'KeyS': moveBackward=true; break;
       case 'KeyA': moveLeft=true; break;
       case 'KeyD': moveRight=true; break;
-      case 'Space':
-        if(canJump){ velocityY = 0.3; canJump=false; }
-        break;
+      case 'Space': if(canJump){ velocityY=0.3; canJump=false; } break;
     }
   });
-  document.addEventListener('keyup',(e)=>{
+  document.addEventListener('keyup', e=>{
     switch(e.code){
       case 'KeyW': moveForward=false; break;
       case 'KeyS': moveBackward=false; break;
@@ -146,38 +124,31 @@ function init() {
     }
   });
 
-  window.addEventListener('resize',()=>{
+  window.addEventListener('resize', ()=>{
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth,window.innerHeight);
+    renderer.setSize(window.innerWidth, window.innerHeight);
   });
 }
 
-// Animate
 function animate(){
   requestAnimationFrame(animate);
-
   const speed = 0.2;
-  let forwardVector = new THREE.Vector3();
-  controls.getDirection(forwardVector);
+  let forward=new THREE.Vector3();
+  controls.getDirection(forward);
 
-  let moveX=0, moveZ=0;
-  if(moveForward){ moveX += forwardVector.x*speed; moveZ += forwardVector.z*speed; }
-  if(moveBackward){ moveX -= forwardVector.x*speed; moveZ -= forwardVector.z*speed; }
-  if(moveLeft){ moveX += forwardVector.z*speed; moveZ -= forwardVector.x*speed; }
-  if(moveRight){ moveX -= forwardVector.z*speed; moveZ += forwardVector.x*speed; }
-
-  player.position.x += moveX;
-  player.position.z += moveZ;
+  if(moveForward) player.position.add(forward.clone().multiplyScalar(speed));
+  if(moveBackward) player.position.add(forward.clone().multiplyScalar(-speed));
+  if(moveLeft) player.position.x -= speed;
+  if(moveRight) player.position.x += speed;
 
   // Gravity
   velocityY += gravity;
   player.position.y += velocityY;
 
-  // Platform collision
-  let onPlatform=false;
+  // Platforms
+  let onPlat=false;
   platforms.forEach(p=>{
-    // Move platform
     if(p.userData.moving){
       if(p.userData.vertical){
         p.position.y += p.userData.speed*p.userData.dir;
@@ -187,42 +158,34 @@ function animate(){
         if(p.position.x>40 || p.position.x<5) p.userData.dir*=-1;
       }
     }
-
-    if(player.position.x > p.position.x-2.5 && player.position.x < p.position.x+2.5 &&
-       player.position.z > p.position.z-2.5 && player.position.z < p.position.z+2.5 &&
-       player.position.y > p.position.y && player.position.y < p.position.y+0.5){
-      onPlatform=true;
-      player.position.y=p.position.y+0.5;
-      velocityY=0;
-      canJump=true;
-    }
+    if(player.position.x>p.position.x-2.5 && player.position.x<p.position.x+2.5 &&
+       player.position.z>p.position.z-2.5 && player.position.z<p.position.z+2.5 &&
+       player.position.y>p.position.y && player.position.y<p.position.y+0.5){
+         onPlat=true; velocityY=0; canJump=true;
+         player.position.y=p.position.y+0.5;
+       }
   });
 
-  // Hazards collision
+  // Hazards
   hazards.forEach(h=>{
     if(player.position.x>h.position.x-2.5 && player.position.x<h.position.x+2.5 &&
        player.position.z>h.position.z-2.5 && player.position.z<h.position.z+2.5 &&
        player.position.y>h.position.y && player.position.y<h.position.y+1){
-      // Reset player
-      player.position.set(0,0.5,0);
-      velocityY=0;
-    }
+         player.position.set(0,0.5,0);
+         velocityY=0;
+       }
   });
 
-  if(!onPlatform && player.position.y<0){
-    player.position.y=0.5;
-    velocityY=0;
-    canJump=true;
-  }
+  if(!onPlat && player.position.y<0){ player.position.y=0.5; velocityY=0; canJump=true; }
 
-  // Check finish
+  // Finish
   const finish = scene.getObjectByName('finish');
   if(finish && !finished && player.position.distanceTo(finish.position)<1.5){
     finished=true;
     document.getElementById('winMessage').style.display='block';
   }
 
-  // Camera follows player
+  // Sync camera
   controls.getObject().position.set(player.position.x,player.position.y+1.5,player.position.z);
 
   renderer.render(scene,camera);
