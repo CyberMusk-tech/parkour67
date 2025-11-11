@@ -100,9 +100,12 @@ function init(){
   controls = new THREE.PointerLockControls(camera, document.body);
   controls.getObject().position.set(player.position.x,player.position.y+1.5,player.position.z);
 
-  document.getElementById('startButton').addEventListener('click',()=>{
-    controls.lock();
-    document.getElementById('startButton').style.display='none';
+  // START BUTTON FIXED
+  document.getElementById('startButton').addEventListener('click', ()=>{
+    const btn = document.getElementById('startButton');
+    btn.style.display='none';  // hide it
+    btn.remove();               // remove so click can register
+    controls.lock();            // now pointer lock works
   });
 
   // Keyboard
